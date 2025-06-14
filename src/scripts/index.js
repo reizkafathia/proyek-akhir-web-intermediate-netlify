@@ -9,16 +9,32 @@ import '../styles/styles.css';
   let isInitialized = false;
   let updateBannerShown = false;
   
-  // Fix BASE_PATH untuk GitHub Pages
-  const BASE_PATH = import.meta.env.PROD 
-    ? '/proyek-akhir-web-intermediate/' 
-    : '/';
+  // Fix BASE_PATH untuk berbagai deployment
+  const BASE_PATH = (() => {
+    // Deteksi environment
+    const hostname = window.location.hostname;
+    const pathname = window.location.pathname;
+    
+    if (hostname.includes('netlify.app')) {
+      // Netlify deployment - no additional path needed
+      return '/';
+    } else if (hostname.includes('github.io')) {
+      // GitHub Pages deployment
+      return '/proyek-akhir-web-intermediate/';
+    } else if (import.meta.env.PROD) {
+      // Production build tapi bukan GitHub Pages
+      return '/';
+    } else {
+      // Development
+      return '/';
+    }
+  })();
 
   document.addEventListener("DOMContentLoaded", async () => {
     if (isInitialized) return;
 
     try {
-      console.log("Initializing app...", { BASE_PATH });
+      console.log("Initializing app...", { BASE_PATH, hostname: window.location.hostname });
       loadBaseStyles();
       addSkipLink();
 
@@ -45,8 +61,8 @@ import '../styles/styles.css';
     link.id = 'app-base-styles';
     link.rel = 'stylesheet';
     
-    // Fix CSS path untuk GitHub Pages
-    link.href = BASE_PATH + 'styles/styles.css';
+    // Fix CSS path - gunakan path yang benar sesuai struktur folder
+    link.href = './src/styles/styles.css';
 
     link.onerror = () => {
       console.log('External CSS not found, using inline styles');
@@ -70,6 +86,14 @@ import '../styles/styles.css';
           min-height: calc(100vh - 40px);
         }
         .skip-link:focus { top: 6px !important; }
+        .loading {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 50vh;
+          font-size: 18px;
+          color: #666;
+        }
       `;
       document.head.appendChild(style);
     };
@@ -133,8 +157,7 @@ import '../styles/styles.css';
       return;
     }
 
-    // Fix service worker path untuk GitHub Pages
-    const swPath = 'sw.js';
+    const swPath = './sw.js';
     console.log("Registering Service Worker:", swPath);
 
     try {
@@ -146,7 +169,7 @@ import '../styles/styles.css';
       }
 
       const registration = await navigator.serviceWorker.register(swPath, {
-        scope: BASE_PATH,
+        scope: '/',
         updateViaCache: 'none'
       });
 
