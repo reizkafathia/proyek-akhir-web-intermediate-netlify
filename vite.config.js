@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
-export default defineConfig(({ mode }) => ({
-  base: mode === 'production' ? '/proyek-akhir-web-intermediate/' : '/',
+export default defineConfig({
+  base: '/', 
+
   build: {
     outDir: 'dist',
     emptyOutDir: true,
@@ -10,6 +11,7 @@ export default defineConfig(({ mode }) => ({
       input: resolve(__dirname, 'index.html'),
     },
   },
+
   server: {
     port: 3000,
     open: true,
@@ -17,12 +19,13 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       port: 3000,
       host: 'localhost',
-      clientPort: 3000
+      clientPort: 3000,
     },
   },
+
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
     },
   },
-}));
+});
