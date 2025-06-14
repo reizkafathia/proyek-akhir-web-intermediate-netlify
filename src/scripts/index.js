@@ -1,6 +1,6 @@
 import { Router } from "./routes/routes.js";
 import notificationManager from "../utils/notification.js";
-import '../../public/styles/styles.css';
+import '../styles/styles.css';
 
 (() => {
   "use strict";
