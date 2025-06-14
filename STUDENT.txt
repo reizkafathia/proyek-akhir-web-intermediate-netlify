@@ -1,0 +1,2 @@
+APP_URL=https://reizkafathia.github.io/proyek-akhir-web-intermediate/
+MAP_SERVICE_API_KEY=<api_key>
