@@ -1,45 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Story Share App</title>
-  <meta name="description" content="Share your stories with the world on an interactive map" />
-  <meta name="theme-color" content="#6366f1" />
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Story Share App</title>
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="icons/icon-96x96.png" />
+    <meta name="description" content="Share your stories with the world on an interactive map" />
+    <meta name="theme-color" content="#6366f1" />
 
-  <!-- PWA Manifest -->
-  <link rel="manifest" href="manifest.json" />
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/icons/icon-96x96.png" />
 
-  <!-- Apple Touch Icon -->
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
 
-  <!-- Apple Meta -->
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-  <meta name="apple-mobile-web-app-title" content="Story Share" />
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="Story Share" />
 
-  <!-- Microsoft Tiles -->
-  <meta name="msapplication-TileColor" content="#6366f1" />
+    <!-- Microsoft Tiles -->
+    <meta name="msapplication-TileColor" content="#6366f1" />
 
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+  </head>
 
-  <!-- App CSS -->
-  <link rel="stylesheet" href="styles/styles.css" />
-</head>
-<body>
-  <main id="app" role="main" aria-label="Main content">
-    <div class="loading">Loading Story Share App...</div>
-  </main>
+  <body>
+    <main id="app" role="main" aria-label="Main content">
+      <div class="loading">Loading Story Share App...</div>
+    </main>
 
-  <!-- Leaflet JS -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <!-- Leaflet JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 
-  <!-- App JS -->
-  <script type="module" src="src/scripts/index.js"></script>
-</body>
+    <!-- App Entry -->
+    <script type="module" src="/src/scripts/index.js"></script>
+  </body>
 </html>

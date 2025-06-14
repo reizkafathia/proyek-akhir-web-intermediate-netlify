@@ -1,2 +1,2 @@
-APP_URL=https://reizkafathia.github.io/proyek-akhir-web-intermediate/
+APP_URL=https://proyek-akhir-web-intermediate.netlify.app
 MAP_SERVICE_API_KEY=<api_key>

@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
 export default defineConfig({
-  base: '/', 
+  base: '/', // <- FIX: HARUS INI untuk Netlify
 
   build: {
     outDir: 'dist',
@@ -19,7 +19,7 @@ export default defineConfig({
     hmr: {
       port: 3000,
       host: 'localhost',
-      clientPort: 3000,
+      clientPort: 3000
     },
   },
 
