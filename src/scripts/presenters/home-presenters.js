@@ -42,7 +42,8 @@ export class HomePresenter {
         NotificationManager.showLocalNotification("Logged out", {
           body: "You have been logged out successfully",
         });
-        window.location.hash = "#/login"; // redirect to login after logout
+        // Redundant but safe:
+        window.location.hash = "#/login";
       }
     } catch (error) {
       console.error("Logout error:", error);

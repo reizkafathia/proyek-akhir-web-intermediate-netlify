@@ -1,6 +1,10 @@
 import { BASE_URL } from "../../scripts/config.js";
 import { showNotification } from "../../utils/notification.js";
 
+// =======================
+// AUTH FUNCTIONS
+// =======================
+
 // Register
 export const register = async (name, email, password) => {
   const response = await fetch(`${BASE_URL}/register`, {
@@ -8,16 +12,19 @@ export const register = async (name, email, password) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, email, password }),
   });
+
   if (!response.ok) {
     const errorData = await response
       .json()
       .catch(() => ({ message: "Registration failed" }));
     throw new Error(errorData.message || "Registrasi gagal");
   }
+
   const result = await response.json();
   showNotification("Registrasi Berhasil", {
     body: "Silakan login untuk melanjutkan.",
   });
+
   return result;
 };
 
@@ -28,12 +35,14 @@ export const login = async (email, password) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
+
   if (!response.ok) {
     const errorData = await response
       .json()
       .catch(() => ({ message: "Login failed" }));
     throw new Error(errorData.message || "Login gagal");
   }
+
   const result = await response.json();
   console.log("Login response:", result);
 
@@ -42,11 +51,14 @@ export const login = async (email, password) => {
     console.error("No token found in response:", result);
     throw new Error("Login gagal: token tidak ditemukan.");
   }
+
   sessionStorage.setItem("authToken", token);
+
   const userName = result.loginResult?.name || result.data?.name || "pengguna";
   showNotification("Login Berhasil", {
     body: `Selamat datang kembali, ${userName}!`,
   });
+
   return result;
 };
 
@@ -54,20 +66,17 @@ export const login = async (email, password) => {
 export const logout = () => {
   sessionStorage.removeItem("authToken");
   showNotification("Logout Berhasil", { body: "Sampai jumpa lagi!" });
-  window.location.hash = "#/login";
+  window.location.href = "/#/login"; // force redirect
 };
 
-// Get token
-export const getToken = () => {
-  return sessionStorage.getItem("authToken");
-};
+// Token Helpers
+export const getToken = () => sessionStorage.getItem("authToken");
 
-// Check if user is logged in
-export const isLoggedIn = () => {
-  return !!getToken();
-};
+export const isLoggedIn = () => !!getToken();
 
-// StoryModel class - Instance-based version
+// =======================
+// STORY MODEL
+// =======================
 export class StoryModel {
   async getStories() {
     const token = getToken();
@@ -77,7 +86,9 @@ export class StoryModel {
         "Content-Type": "application/json",
       },
     });
+
     if (!response.ok) throw new Error("Failed to fetch stories");
+
     return await response.json();
   }
 
@@ -85,7 +96,6 @@ export class StoryModel {
     const token = getToken();
 
     const formData = new FormData();
-
     formData.append("description", storyData.description);
     formData.append("photo", storyData.photo);
 
@@ -112,7 +122,7 @@ export class StoryModel {
     return await response.json();
   }
 
-  // Static methods untuk backward compatibility
+  // Static methods
   static async getStories() {
     const instance = new StoryModel();
     return instance.getStories();
@@ -124,29 +134,41 @@ export class StoryModel {
   }
 }
 
-// AuthService class for compatibility
+// =======================
+// AUTH SERVICE CLASS
+// =======================
 export class AuthService {
   static getToken() {
     return getToken();
   }
+
   static setToken(token) {
     sessionStorage.setItem("authToken", token);
   }
+
   static removeToken() {
     sessionStorage.removeItem("authToken");
     showNotification("Logout Berhasil", { body: "Sampai jumpa lagi!" });
-    window.location.hash = "#/login";
+    window.location.href = "/#/login";
   }
+
   static isLoggedIn() {
     return isLoggedIn();
   }
+
+  static logout() {
+    logout(); // Uses the standalone logout function
+  }
+
   async login(email, password) {
     return await login(email, password);
   }
+
   async register(name, email, password) {
     return await register(name, email, password);
   }
+
   logout() {
-    logout();
+    logout(); // Instance-level logout just redirects
   }
 }

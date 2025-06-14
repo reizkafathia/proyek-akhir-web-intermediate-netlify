@@ -1,165 +1,289 @@
-const CACHE_NAME = 'story-cache-v1';
+const CACHE_NAME = 'story-cache-v4';
+const OFFLINE_URL = '/offline.html';
+const API_CACHE_NAME = 'api-cache-v2';
 
-// URLs to cache - sesuaikan dengan struktur project
-const urlsToCache = [
-  './',
-  './index.html',
-  './src/styles/styles.css',
-  './src/scripts/index.js',
-  './manifest.json',
-  './icons/icon-96x96.png',
-  './icons/icon-192x192.png',
-  './icons/icon-512x512.png',
-  // External CDN resources
-  'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css',
-  'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js',
+// Precached resources
+const PRECACHE_URLS = [
+  '/',
+  '/index.html',
+  OFFLINE_URL,
+  '/manifest.json',
+  '/icons/icon-192x192.png',
+  '/src/styles/styles.css',
+  '/src/scripts/app.js',
+  '/src/utils/indexedDB.js'
 ];
 
-// Fungsi untuk check apakah URL valid sebelum caching
-async function cacheValidUrls(cache, urls) {
-  const results = await Promise.allSettled(
-    urls.map(async (url) => {
-      try {
-        // Test fetch dulu sebelum add ke cache
-        const response = await fetch(url);
-        if (response.ok) {
-          await cache.add(url);
-          console.log(`[SW] Cached: ${url}`);
-          return url;
-        } else {
-          console.warn(`[SW] Failed to cache (${response.status}): ${url}`);
-          return null;
-        }
-      } catch (error) {
-        console.warn(`[SW] Error caching ${url}:`, error.message);
-        return null;
-      }
-    })
-  );
-  
-  const successful = results
-    .filter(result => result.status === 'fulfilled' && result.value)
-    .map(result => result.value);
-  
-  console.log(`[SW] Successfully cached ${successful.length}/${urls.length} files`);
-  return successful;
-}
+// API endpoints to cache
+const API_ENDPOINTS = [
+  '/api/stories',
+  '/api/login'
+];
 
-self.addEventListener('install', event => {
-  console.log('[SW] Installing');
+// ==================== INSTALL ==================== //
+self.addEventListener('install', (event) => {
+  console.log('[SW] Installing service worker...');
   
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('[SW] Cache opened');
-        return cacheValidUrls(cache, urlsToCache);
+      .then((cache) => {
+        console.log('[SW] Caching essential resources');
+        return cache.addAll(PRECACHE_URLS);
       })
-      .then(() => {
-        console.log('[SW] All valid files cached');
-        // Force activation
-        return self.skipWaiting();
-      })
-      .catch(error => {
-        console.error('[SW] Cache installation failed:', error);
-        // Jangan gagal install karena beberapa file tidak bisa di-cache
-        return Promise.resolve();
-      })
+      .then(() => self.skipWaiting())
   );
 });
 
-self.addEventListener('activate', event => {
-  console.log('[SW] Activated');
+// ==================== ACTIVATE ==================== //
+self.addEventListener('activate', (event) => {
+  console.log('[SW] Activating service worker...');
   
   event.waitUntil(
-    Promise.all([
-      // Clean up old caches
-      caches.keys().then(keys =>
-        Promise.all(
-          keys.map(key => {
-            if (key !== CACHE_NAME) {
-              console.log('[SW] Deleting old cache:', key);
-              return caches.delete(key);
-            }
-          })
-        )
-      ),
-      // Take control of all clients
-      self.clients.claim()
-    ])
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (![CACHE_NAME, API_CACHE_NAME].includes(cacheName)) {
+            console.log('[SW] Removing old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
   );
 });
 
-self.addEventListener('fetch', event => {
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') {
+// ==================== FETCH HANDLER ==================== //
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  
+  // Skip non-GET requests and non-http requests
+  if (request.method !== 'GET' || !request.url.startsWith('http')) return;
+
+  // Handle navigation requests
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request).catch(() => caches.match(OFFLINE_URL))
+    );
     return;
   }
 
-  // Skip chrome-extension and other non-http requests
-  if (!event.request.url.startsWith('http')) {
+  // Handle API requests
+  if (isApiRequest(request)) {
+    event.respondWith(handleApiRequest(request));
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Return cached version if available
-        if (response) {
-          console.log('[SW] Cache hit:', event.request.url);
-          return response;
-        }
+  // Handle static assets
+  event.respondWith(handleAssetRequest(request));
+});
 
-        // Otherwise fetch from network
-        console.log('[SW] Network fetch:', event.request.url);
-        return fetch(event.request)
-          .then(response => {
-            // Don't cache non-successful responses
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
+// ==================== API REQUEST HANDLER ==================== //
+async function handleApiRequest(request) {
+  try {
+    // Try network first
+    const networkResponse = await fetch(request);
+    
+    // Cache successful API responses
+    if (networkResponse.ok) {
+      const clone = networkResponse.clone();
+      caches.open(API_CACHE_NAME)
+        .then(cache => cache.put(request, clone));
+    }
+    
+    return networkResponse;
+  } catch (error) {
+    console.log('[SW] Network failed, checking cache for:', request.url);
+    
+    // Check cache for API response
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) return cachedResponse;
+    
+    // For POST requests, store in IndexedDB for later sync
+    if (request.method === 'POST') {
+      const requestData = await request.clone().json();
+      return handleOfflinePost(request.url, requestData);
+    }
+    
+    return createOfflineResponse();
+  }
+}
 
-            // Clone the response as it can only be consumed once
-            const responseToCache = response.clone();
+// ==================== ASSET REQUEST HANDLER ==================== //
+async function handleAssetRequest(request) {
+  const cachedResponse = await caches.match(request);
+  if (cachedResponse) {
+    console.log('[SW] Cache hit:', request.url);
+    return cachedResponse;
+  }
 
-            // Add to cache for future requests
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                cache.put(event.request, responseToCache);
-              })
-              .catch(error => {
-                console.warn('[SW] Failed to cache response:', error);
-              });
+  try {
+    const networkResponse = await fetch(request);
+    
+    // Cache dynamic resources
+    if (networkResponse.ok) {
+      const clone = networkResponse.clone();
+      caches.open(CACHE_NAME)
+        .then(cache => cache.put(request, clone));
+    }
+    
+    return networkResponse;
+  } catch (error) {
+    console.log('[SW] Network failed for:', request.url);
+    return Response.error();
+  }
+}
 
-            return response;
-          })
-          .catch(error => {
-            console.error('[SW] Fetch failed:', error);
-            
-            // Return a fallback response for navigation requests
-            if (event.request.mode === 'navigate') {
-              return caches.match('./index.html');
-            }
-            
-            throw error;
-          });
+// ==================== OFFLINE POST HANDLER ==================== //
+async function handleOfflinePost(url, data) {
+  console.log('[SW] Storing offline data for:', url);
+  
+  // Store in IndexedDB
+  const db = await openIDB();
+  const tx = db.transaction('pendingRequests', 'readwrite');
+  const store = tx.objectStore('pendingRequests');
+  
+  await store.add({
+    url,
+    data,
+    timestamp: Date.now()
+  });
+  
+  return new Response(JSON.stringify({
+    success: true,
+    message: "Stored offline. Will sync when online.",
+    offline: true
+  }), {
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
+
+// ==================== BACKGROUND SYNC ==================== //
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-pending') {
+    console.log('[SW] Background sync triggered');
+    event.waitUntil(syncPendingRequests());
+  }
+});
+
+async function syncPendingRequests() {
+  console.log('[SW] Syncing pending requests...');
+  const db = await openIDB();
+  const tx = db.transaction('pendingRequests', 'readwrite');
+  const store = tx.objectStore('pendingRequests');
+  const requests = await store.getAll();
+
+  const results = [];
+  
+  for (const request of requests) {
+    try {
+      const response = await fetch(request.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request.data)
+      });
+      
+      if (response.ok) {
+        await store.delete(request.timestamp);
+        results.push({
+          url: request.url,
+          status: 'success'
+        });
+      }
+    } catch (error) {
+      results.push({
+        url: request.url,
+        status: 'failed',
+        error: error.message
+      });
+    }
+  }
+  
+  if (results.some(r => r.status === 'success')) {
+    await self.registration.showNotification('Sync Complete', {
+      body: `Synced ${results.filter(r => r.status === 'success').length} items`,
+      icon: '/icons/icon-192x192.png'
+    });
+  }
+  
+  return results;
+}
+
+// ==================== PUSH NOTIFICATIONS ==================== //
+self.addEventListener('push', (event) => {
+  const payload = event.data?.json() || {
+    title: 'New Story',
+    body: 'A new story has been published!'
+  };
+  
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-96x96.png',
+      data: { url: payload.url || '/' },
+      vibrate: [200, 100, 200]
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window' })
+      .then((clients) => {
+        const targetUrl = event.notification.data.url;
+        const client = clients.find(c => c.url === targetUrl);
+        
+        if (client) return client.focus();
+        return clients.openWindow(targetUrl);
       })
   );
 });
 
-// Handle messages from main thread
-self.addEventListener('message', event => {
-  console.log('[SW] Message received:', event.data);
-  
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-});
+// ==================== INDEXEDDB HELPERS ==================== //
+function openIDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('StoryShareDB', 2);
+    
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('pendingRequests')) {
+        db.createObjectStore('pendingRequests', { keyPath: 'timestamp' });
+      }
+    };
+    
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
 
-// Notify clients when new SW is ready
-self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'CLIENT_CHECK_UPDATE') {
-    event.ports[0].postMessage({
-      type: 'SW_UPDATE_READY'
-    });
+// ==================== UTILITY FUNCTIONS ==================== //
+function isApiRequest(request) {
+  return API_ENDPOINTS.some(endpoint => 
+    request.url.includes(endpoint)
+  );
+}
+
+function createOfflineResponse() {
+  return new Response(JSON.stringify({ 
+    error: "You're offline",
+    offline: true
+  }), {
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
+
+// ==================== MESSAGE HANDLER ==================== //
+self.addEventListener('message', (event) => {
+  switch (event.data.type) {
+    case 'SKIP_WAITING':
+      self.skipWaiting();
+      break;
+      
+    case 'TRIGGER_SYNC':
+      self.registration.sync.register('sync-pending')
+        .then(() => console.log('[SW] Sync registered'))
+        .catch(console.error);
+      break;
   }
 });

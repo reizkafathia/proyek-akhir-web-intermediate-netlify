@@ -1,9 +1,12 @@
 import { HomeView } from "../pages/views/home.js";
 import { StoryDBManagerView } from "../pages/views/story-manager.js";
+import { LoginView } from "../pages/views/login.js"; // pastikan path ini benar
 
 const routes = {
   "/": HomeView,
   "/story-manager": StoryDBManagerView,
+  "/login": LoginView,
+  "/offline": () => "<h1>You're offline. Please check your connection.</h1>",
 };
 
 export class Router {

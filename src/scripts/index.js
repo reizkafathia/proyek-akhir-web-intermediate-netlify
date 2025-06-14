@@ -1,5 +1,5 @@
 import { Router } from "./routes/routes.js";
-import notificationManager from "../utils/notification.js";
+import { requestNotificationPermission, getNotificationStatus, testNotification } from '../utils/notification.js';
 import '../styles/styles.css';
 
 (() => {
@@ -30,6 +30,7 @@ import '../styles/styles.css';
     }
   })();
 
+  // Main initialization
   document.addEventListener("DOMContentLoaded", async () => {
     if (isInitialized) return;
 
@@ -43,11 +44,17 @@ import '../styles/styles.css';
       await router.init();
 
       // Setup service worker after router is ready
-      await setupServiceWorker();
+      const swSetup = await setupServiceWorker();
+      console.log('Service Worker setup result:', swSetup);
+      
       setupNetworkEvents();
 
       isInitialized = true;
       console.log("App initialized successfully");
+      
+      // Show initialization complete message
+      showToast("App loaded successfully!", "success");
+      
     } catch (error) {
       console.error("Init failed:", error);
       showError("Failed to load app. Try refreshing.");
@@ -136,9 +143,13 @@ import '../styles/styles.css';
       try {
         const result = await window.storyModel.syncDrafts();
         if (result && result.synced > 0) {
-          notificationManager.showLocalNotification("Sync Complete", {
-            body: result.message,
-          });
+          // Use native Notification API instead of undefined notificationManager
+          if (Notification.permission === 'granted') {
+            new Notification("Sync Complete", {
+              body: result.message,
+              icon: '/icon-192x192.png' // adjust path as needed
+            });
+          }
         }
       } catch (err) {
         console.error("Sync error:", err);
@@ -152,78 +163,207 @@ import '../styles/styles.css';
   }
 
   async function setupServiceWorker() {
-    if (!("serviceWorker" in navigator)) {
-      console.log("Service Worker not supported");
-      return;
-    }
-
-    const swPath = './sw.js';
-    console.log("Registering Service Worker:", swPath);
-
+    console.log('Setting up Service Worker...');
+    
     try {
-      // Unregister existing service worker first
-      const existingRegistration = await navigator.serviceWorker.getRegistration();
-      if (existingRegistration) {
-        console.log("Unregistering existing service worker");
-        await existingRegistration.unregister();
+      // Check if service workers are supported
+      if (!('serviceWorker' in navigator)) {
+        console.warn('Service Workers not supported in this browser');
+        return false;
       }
-
-      const registration = await navigator.serviceWorker.register(swPath, {
-        scope: '/',
-        updateViaCache: 'none'
+  
+      // Unregister existing service worker first (optional - for development)
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      if (registrations.length > 0) {
+        console.log('Unregistering existing service worker');
+        for (const registration of registrations) {
+          await registration.unregister();
+        }
+      }
+  
+      // Register new service worker
+      console.log('Registering Service Worker: ./sw.js');
+      const registration = await navigator.serviceWorker.register('./sw.js', {
+        scope: '/'
       });
-
-      console.log("Service Worker registered successfully", registration);
-      
+  
+      console.log('Service Worker registered successfully', registration);
+  
       // Wait for service worker to be ready
       await navigator.serviceWorker.ready;
-      console.log("Service Worker is ready");
-
-      // Setup notifications after SW is ready
+      console.log('Service Worker is ready');
+  
+      // Setup notifications after service worker is ready
       await setupNotifications();
+  
+      // Listen for service worker updates
       watchServiceWorker(registration);
-
+  
+      return true;
+  
     } catch (error) {
-      console.error("SW setup failed:", error);
-      // Show user-friendly error
-      showToast("Service Worker failed to load. Some features may not work offline.", "warning");
+      console.error('Service Worker setup failed:', error);
+      return false;
     }
   }
 
   async function setupNotifications() {
+    console.log('Setting up notifications...');
+    
     try {
-      console.log("Setting up notifications...");
-      
       // Check if notifications are supported
       if (!('Notification' in window)) {
-        console.log("Notifications not supported");
+        console.warn('❌ Notifications not supported in this browser');
+        showToast('Notifications not supported in this browser', 'warning');
+        return false;
+      }
+      
+      // Check current permission status
+      console.log('Current notification permission:', Notification.permission);
+      
+      // If permission is already granted, test immediately
+      if (Notification.permission === 'granted') {
+        console.log('✅ Notification permission already granted');
+        
+        // Test notification immediately
+        setTimeout(() => {
+          showTestNotification();
+        }, 1000);
+        
+        return true;
+      }
+
+      // If permission was previously denied, show instruction
+      if (Notification.permission === 'denied') {
+        console.warn('⚠️ Notification permission was denied');
+        showToast('Notifications blocked. Enable in browser settings if needed.', 'warning');
         return false;
       }
 
-      // Request permission
-      const permission = await notificationManager.requestPermission();
-      console.log("Notification permission:", permission);
-      
-      if (permission === 'granted') {
-        // Subscribe to push notifications
-        const subscription = await notificationManager.subscribeUser();
-        if (subscription) {
-          console.log("Push subscription active");
-          
-          // Show notification permission granted message
-          showToast("Notifications enabled successfully!", "success");
-          
-          return true;
-        }
-      } else if (permission === 'denied') {
-        showToast("Notifications blocked. Enable in browser settings for updates.", "warning");
+      // Request permission (only if it's 'default')
+      if (Notification.permission === 'default') {
+        console.log('🔔 Requesting notification permission...');
+        
+        // Show user-friendly prompt first
+        showNotificationPrompt();
+        
+        return true;
       }
       
-      return false;
     } catch (error) {
-      console.error("Notification setup failed:", error);
-      showToast("Could not set up notifications", "warning");
+      console.error('Notification setup failed:', error);
       return false;
+    }
+  }
+
+  // Show a custom prompt to ask user about notifications
+  function showNotificationPrompt() {
+    const promptDiv = document.createElement('div');
+    promptDiv.id = 'notification-prompt';
+    promptDiv.style.cssText = `
+      position: fixed; top: 20px; right: 20px; z-index: 1001;
+      background: white; border: 2px solid #6366f1; border-radius: 12px;
+      padding: 20px; max-width: 350px; box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+      font-family: Arial, sans-serif;
+    `;
+    
+    promptDiv.innerHTML = `
+      <div style="display: flex; align-items: center; margin-bottom: 12px;">
+        <span style="font-size: 24px; margin-right: 8px;">🔔</span>
+        <strong style="color: #333;">Enable Notifications?</strong>
+      </div>
+      <p style="color: #666; margin-bottom: 16px; line-height: 1.4;">
+        Get notified about important updates and sync status.
+      </p>
+      <div style="display: flex; gap: 8px;">
+        <button id="allow-notifications" style="
+          background: #6366f1; color: white; border: none;
+          padding: 10px 16px; border-radius: 6px; cursor: pointer;
+          font-weight: 500; flex: 1;
+        ">Allow</button>
+        <button id="deny-notifications" style="
+          background: #e5e7eb; color: #374151; border: none;
+          padding: 10px 16px; border-radius: 6px; cursor: pointer;
+          font-weight: 500; flex: 1;
+        ">Not Now</button>
+      </div>
+    `;
+    
+    document.body.appendChild(promptDiv);
+    
+    // Handle allow button
+    document.getElementById('allow-notifications').onclick = async () => {
+      try {
+        const permission = await Notification.requestPermission();
+        console.log('Permission result:', permission);
+        
+        if (permission === 'granted') {
+          console.log('✅ Notification permission granted!');
+          showToast('Notifications enabled successfully!', 'success');
+          
+          // Test notification
+          setTimeout(() => {
+            showTestNotification();
+          }, 500);
+        } else {
+          console.warn('⚠️ Notification permission denied');
+          showToast('Notifications not enabled', 'warning');
+        }
+      } catch (error) {
+        console.error('Error requesting permission:', error);
+        showToast('Failed to request notification permission', 'error');
+      }
+      
+      promptDiv.remove();
+    };
+    
+    // Handle deny button
+    document.getElementById('deny-notifications').onclick = () => {
+      console.log('User declined notifications');
+      promptDiv.remove();
+    };
+    
+    // Auto-remove after 30 seconds
+    setTimeout(() => {
+      if (document.contains(promptDiv)) {
+        promptDiv.remove();
+      }
+    }, 30000);
+  }
+
+  // Test notification function
+  function showTestNotification() {
+    if (Notification.permission !== 'granted') {
+      console.warn('Cannot show test notification: permission not granted');
+      return;
+    }
+    
+    try {
+      const notification = new Notification('🎉 Notifications Enabled!', {
+        body: 'You will now receive important updates from this app.',
+        icon: '/icon.ico', // fallback icon
+        badge: '/icon.ico',
+        tag: 'welcome-notification',
+        requireInteraction: false,
+        silent: false
+      });
+      
+      notification.onclick = () => {
+        console.log('Welcome notification clicked');
+        notification.close();
+        window.focus();
+      };
+      
+      // Auto close after 5 seconds
+      setTimeout(() => {
+        notification.close();
+      }, 5000);
+      
+      console.log('✅ Test notification shown');
+      
+    } catch (error) {
+      console.error('Failed to show test notification:', error);
+      showToast('Failed to show test notification', 'error');
     }
   }
 
@@ -258,6 +398,23 @@ import '../styles/styles.css';
             showUpdateBanner();
           }
         }, 1000);
+      }
+
+      // Handle different message types
+      switch (event.data?.type) {
+        case 'CACHE_UPDATED':
+          console.log('Cache updated by Service Worker');
+          break;
+        case 'OFFLINE_FALLBACK':
+          console.log('Service Worker serving offline content');
+          break;
+        case 'SW_UPDATE_READY':
+          // Already handled above
+          break;
+        default:
+          if (event.data?.type) {
+            console.log('Unknown message from Service Worker:', event.data);
+          }
       }
     });
   }
@@ -323,6 +480,51 @@ import '../styles/styles.css';
         updateBannerShown = false;
       }
     }, 30000);
+  }
+
+  // Helper function for showing notifications (replaces undefined showNotification)
+  function showAppNotification(title, options = {}) {
+    console.log('showAppNotification called:', { title, options, permission: Notification.permission });
+    
+    if (!('Notification' in window)) {
+      console.warn('Notifications not supported');
+      showToast(title + (options.body ? ': ' + options.body : ''), 'info');
+      return null;
+    }
+    
+    if (Notification.permission === 'granted') {
+      try {
+        const notification = new Notification(title, {
+          icon: '/icon.ico',
+          badge: '/icon.ico',
+          tag: 'app-notification',
+          requireInteraction: false,
+          ...options
+        });
+        
+        notification.onclick = () => {
+          console.log('Notification clicked:', title);
+          notification.close();
+          window.focus();
+        };
+        
+        notification.onerror = (error) => {
+          console.error('Notification error:', error);
+        };
+        
+        console.log('✅ Notification created successfully');
+        return notification;
+        
+      } catch (error) {
+        console.error('Failed to create notification:', error);
+        showToast(title + (options.body ? ': ' + options.body : ''), 'info');
+        return null;
+      }
+    } else {
+      console.warn('Cannot show notification: permission =', Notification.permission);
+      showToast(title + (options.body ? ': ' + options.body : ''), 'warning');
+      return null;
+    }
   }
 
   function showToast(message, type = "info") {
@@ -414,7 +616,7 @@ import '../styles/styles.css';
   `;
   document.head.appendChild(style);
 
-  // Global error handler
+  // Global error handlers
   window.addEventListener('error', (event) => {
     console.error('Global error:', event.error);
   });
@@ -427,10 +629,56 @@ import '../styles/styles.css';
   if (import.meta.env.DEV) {
     window.app = { 
       router: () => router, 
-      notificationManager,
+      showAppNotification,
+      showTestNotification,
+      setupNotifications,
       isInitialized: () => isInitialized,
-      BASE_PATH
+      BASE_PATH,
+      // Debug helpers
+      testNotification: () => {
+        console.log('Testing notification...');
+        showTestNotification();
+      },
+      checkNotificationStatus: () => {
+        console.log('Notification permission:', Notification.permission);
+        console.log('Notification supported:', 'Notification' in window);
+        return {
+          permission: Notification.permission,
+          supported: 'Notification' in window
+        };
+      }
     };
+    
+    // Add debug button for testing notifications
+    setTimeout(() => {
+      if (document.querySelector('#app')) {
+        const debugButton = document.createElement('button');
+        debugButton.id = 'debug-notification-btn';
+        debugButton.textContent = '🔔 Test Notification';
+        debugButton.style.cssText = `
+          position: fixed; bottom: 20px; right: 20px; z-index: 1000;
+          background: #6366f1; color: white; border: none;
+          padding: 12px 16px; border-radius: 8px; cursor: pointer;
+          font-size: 14px; font-weight: 500;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        `;
+        
+        debugButton.onclick = () => {
+          console.log('Debug: Testing notification...');
+          
+          if (Notification.permission === 'granted') {
+            showTestNotification();
+          } else if (Notification.permission === 'default') {
+            showNotificationPrompt();
+          } else {
+            showToast('Notifications are blocked. Please enable them in browser settings.', 'warning');
+          }
+        };
+        
+        document.body.appendChild(debugButton);
+        console.log('🔧 Debug notification button added');
+      }
+    }, 2000);
   }
 
   // Export for use in other modules
