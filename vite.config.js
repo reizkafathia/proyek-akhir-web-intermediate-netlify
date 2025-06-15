@@ -1,9 +1,11 @@
+// ==================== IMPORTS ====================
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
+// ==================== CONFIGURATION ====================
 export default defineConfig({
-  base: '/', // <- FIX: HARUS INI untuk Netlify
-
+  // ==================== BASE & BUILD ====================
+  base: '/',
   build: {
     outDir: 'dist',
     emptyOutDir: true,
@@ -11,21 +13,21 @@ export default defineConfig({
       input: resolve(__dirname, 'index.html'),
     },
   },
-
+  
+  // ==================== DEV SERVER ====================
   server: {
     port: 3000,
     open: true,
-    host: 'localhost',
-    hmr: {
-      port: 3000,
-      host: 'localhost',
-      clientPort: 3000
-    },
   },
-
+  
+  // ==================== PATH RESOLUTION ====================
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
     },
   },
+  
+  // ==================== PUBLIC ASSETS ====================
+  publicDir: 'public',
+  assetsInclude: ['**/*.webmanifest'],
 });

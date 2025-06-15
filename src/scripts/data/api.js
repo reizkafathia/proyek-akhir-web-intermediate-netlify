@@ -1,10 +1,7 @@
 import { BASE_URL } from "../../scripts/config.js";
 import { showNotification } from "../../utils/notification.js";
 
-// =======================
-// AUTH FUNCTIONS
-// =======================
-
+// ==================== AUTH FUNCTIONS ====================
 // Register
 export const register = async (name, email, password) => {
   const response = await fetch(`${BASE_URL}/register`, {
@@ -69,14 +66,12 @@ export const logout = () => {
   window.location.href = "/#/login"; // force redirect
 };
 
-// Token Helpers
+// ==================== TOKEN HELPERS ====================
 export const getToken = () => sessionStorage.getItem("authToken");
 
 export const isLoggedIn = () => !!getToken();
 
-// =======================
-// STORY MODEL
-// =======================
+// ==================== STORY MODEL ====================
 export class StoryModel {
   async getStories() {
     const token = getToken();
@@ -122,7 +117,7 @@ export class StoryModel {
     return await response.json();
   }
 
-  // Static methods
+  // ==================== STATIC METHODS ====================
   static async getStories() {
     const instance = new StoryModel();
     return instance.getStories();
@@ -134,10 +129,9 @@ export class StoryModel {
   }
 }
 
-// =======================
-// AUTH SERVICE CLASS
-// =======================
+// ==================== AUTH SERVICE CLASS ====================
 export class AuthService {
+  // ==================== STATIC TOKEN METHODS ====================
   static getToken() {
     return getToken();
   }
@@ -160,6 +154,7 @@ export class AuthService {
     logout(); // Uses the standalone logout function
   }
 
+  // ==================== INSTANCE METHODS ====================
   async login(email, password) {
     return await login(email, password);
   }

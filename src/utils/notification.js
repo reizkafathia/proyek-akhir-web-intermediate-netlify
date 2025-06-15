@@ -1,75 +1,67 @@
-// utils/notification.js - Simple notification utility
+// ==================== NOTIFICATION UTILITY ====================
 
-// Main function yang digunakan di api.js
+// Main notification function
 export async function showNotification(title, options = {}) {
-  console.log('📢 Showing notification:', title, options);
-  
   try {
-    // Cek apakah global notification manager tersedia
+    // Check if global notification manager is available
     if (window.globalNotificationManager) {
-      console.log('Using global NotificationManager');
-      return await window.globalNotificationManager.showLocalNotification(title, options);
+      return await window.globalNotificationManager.showLocalNotification(
+        title,
+        options
+      );
     }
-    
-    // Cek apakah trigger function tersedia
+
+    // Check if trigger function is available
     if (window.triggerNotification) {
-      console.log('Using global trigger function');
       return await window.triggerNotification(title, options);
     }
-    
-    // Fallback ke browser notification langsung
-    console.log('Using fallback browser notification');
+
+    // Fallback to browser notification
     return await showBrowserNotification(title, options);
-    
   } catch (error) {
-    console.error('Error in showNotification:', error);
-    // Ultimate fallback
+    console.error("Error showing notification:", error);
     return await showBrowserNotification(title, options);
   }
 }
 
-// Browser notification fallback
+// ==================== BROWSER NOTIFICATION FALLBACK ====================
+
 async function showBrowserNotification(title, options = {}) {
-  // Check support
-  if (!('Notification' in window)) {
-    console.warn('❌ Browser tidak support notifications');
+  // Check browser support
+  if (!("Notification" in window)) {
+    console.warn("Browser does not support notifications");
     return false;
   }
 
   try {
-    // Request permission jika belum ada
-    if (Notification.permission === 'default') {
-      console.log('🔔 Requesting notification permission...');
+    // Request permission if needed
+    if (Notification.permission === "default") {
       const permission = await Notification.requestPermission();
-      console.log('Permission result:', permission);
-      
-      if (permission !== 'granted') {
-        console.warn('⚠️ Notification permission denied');
+
+      if (permission !== "granted") {
+        console.warn("Notification permission denied");
         return false;
       }
     }
 
-    // Check permission
-    if (Notification.permission === 'granted') {
-      console.log('✅ Showing browser notification');
-      
+    // Show notification if permission granted
+    if (Notification.permission === "granted") {
       const notification = new Notification(title, {
-        body: options.body || '',
-        icon: options.icon || './icons/icon-192x192.png',
-        badge: options.badge || './icons/icon-96x96.png',
-        tag: options.tag || 'default',
+        body: options.body || "",
+        icon: options.icon || "./icons/icon-192x192.png",
+        badge: options.badge || "./icons/icon-96x96.png",
+        tag: options.tag || "default",
         requireInteraction: options.requireInteraction || false,
         silent: options.silent || false,
-        ...options
+        ...options,
       });
 
-      // Handle clicks
+      // Handle click events
       notification.onclick = (event) => {
-        console.log('Notification clicked');
         event.preventDefault();
         window.focus();
         notification.close();
-        
+
         if (options.onClick) {
           options.onClick(event);
         }
@@ -77,108 +69,111 @@ async function showBrowserNotification(title, options = {}) {
 
       // Handle errors
       notification.onerror = (event) => {
-        console.error('Notification error:', event);
+        console.error("Notification error:", event);
       };
 
       return true;
     } else {
-      console.warn('⚠️ Notification permission not granted:', Notification.permission);
+      console.warn(
+        "Notification permission not granted:",
+        Notification.permission
+      );
       return false;
     }
-    
   } catch (error) {
-    console.error('❌ Browser notification error:', error);
+    console.error("Browser notification error:", error);
     return false;
   }
 }
 
-// Specific notification functions
+// ==================== SPECIFIC NOTIFICATION FUNCTIONS ====================
+
 export async function notifyStoryAdded(storyTitle) {
-  return await showNotification("📖 Story Berhasil Ditambahkan!", {
-    body: `"${storyTitle}" telah berhasil dibagikan`,
+  return await showNotification("📖 Story Added Successfully!", {
+    body: `"${storyTitle}" has been shared successfully`,
     tag: "story-added",
     requireInteraction: true,
-    icon: './icons/icon-192x192.png'
+    icon: "./icons/icon-192x192.png",
   });
 }
 
 export async function notifyOfflineSave(message) {
-  return await showNotification("💾 Disimpan untuk Nanti", {
-    body: message || "Story Anda telah disimpan secara offline",
+  return await showNotification("💾 Saved for Later", {
+    body: message || "Your story has been saved offline",
     tag: "offline-save",
-    icon: './icons/icon-192x192.png'
+    icon: "./icons/icon-192x192.png",
   });
 }
 
 export async function notifySync(message) {
-  return await showNotification("🔄 Sinkronisasi Selesai", {
-    body: message || "Story offline Anda telah disinkronkan",
+  return await showNotification("🔄 Sync Complete", {
+    body: message || "Your offline stories have been synchronized",
     tag: "sync-complete",
-    icon: './icons/icon-192x192.png'
+    icon: "./icons/icon-192x192.png",
   });
 }
 
 export async function testNotification() {
   return await showNotification("🧪 Test Notification", {
-    body: "Ini adalah test notification dari PWA Anda!",
+    body: "This is a test notification from your PWA!",
     tag: "test-notification",
     requireInteraction: true,
-    icon: './icons/icon-192x192.png'
+    icon: "./icons/icon-192x192.png",
   });
 }
 
-// Function untuk request permission secara manual
+// ==================== PERMISSION MANAGEMENT ====================
+
 export async function requestNotificationPermission() {
-  if (!('Notification' in window)) {
-    console.warn('Notifications not supported');
+  if (!("Notification" in window)) {
+    console.warn("Notifications not supported");
     return false;
   }
 
-  if (Notification.permission === 'granted') {
+  if (Notification.permission === "granted") {
     return true;
   }
 
   try {
     const permission = await Notification.requestPermission();
-    console.log('Permission result:', permission);
-    return permission === 'granted';
+    return permission === "granted";
   } catch (error) {
-    console.error('Error requesting permission:', error);
+    console.error("Error requesting permission:", error);
     return false;
   }
 }
 
-// Function untuk check status notification
 export function getNotificationStatus() {
-  if (!('Notification' in window)) {
+  if (!("Notification" in window)) {
     return {
       supported: false,
-      permission: 'not-supported',
-      message: 'Browser tidak support notifications'
+      permission: "not-supported",
+      message: "Browser does not support notifications",
     };
   }
 
   return {
     supported: true,
     permission: Notification.permission,
-    message: getPermissionMessage(Notification.permission)
+    message: getPermissionMessage(Notification.permission),
   };
 }
 
 function getPermissionMessage(permission) {
   switch (permission) {
-    case 'granted':
-      return 'Notifikasi diizinkan';
-    case 'denied':
-      return 'Notifikasi ditolak';
-    case 'default':
-      return 'Belum meminta izin notifikasi';
+    case "granted":
+      return "Notifications allowed";
+    case "denied":
+      return "Notifications denied";
+    case "default":
+      return "Permission not requested yet";
     default:
-      return 'Status tidak diketahui';
+      return "Unknown status";
   }
 }
 
-// Export default object
+// ==================== EXPORT ====================
+
 export default {
   showNotification,
   notifyStoryAdded,
@@ -186,18 +181,21 @@ export default {
   notifySync,
   testNotification,
   requestNotificationPermission,
-  getNotificationStatus
+  getNotificationStatus,
 };
 
-// Auto-test notification jika di development mode
-if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-  console.log('🔧 Development mode - notification utils loaded');
-  
-  // Expose functions untuk debugging
+// ==================== DEVELOPMENT MODE ====================
+
+// Auto-setup for development
+if (
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
+) {
+  // Expose functions for debugging
   window.notificationUtils = {
     showNotification,
     testNotification,
     requestNotificationPermission,
-    getNotificationStatus
+    getNotificationStatus,
   };
 }

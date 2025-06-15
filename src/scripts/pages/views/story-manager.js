@@ -1,12 +1,13 @@
-// src/scripts/pages/views/story-manager.js
 import storyDB from "../../../utils/indexedDB.js";
 
+// ==================== MAIN CLASS ====================
 export class StoryDBManagerView {
   constructor() {
     this.title = "Story Database Manager";
     this.storyDB = storyDB;
   }
 
+  // ==================== RENDER ====================
   render() {
     return `
       <div class="story-manager-container">
@@ -52,6 +53,7 @@ export class StoryDBManagerView {
     `;
   }
 
+  // ==================== INITIALIZATION ====================
   async afterRender() {
     try {
       await this.storyDB.openDB();
@@ -62,12 +64,12 @@ export class StoryDBManagerView {
     }
   }
 
+  // ==================== COMPONENT MOUNTING ====================
   async mountComponent() {
     const rootElement = document.getElementById("story-db-manager-root");
     if (!rootElement) throw new Error("Root element not found");
 
     try {
-      // Fixed path: go up to src, then to components
       const { default: StoryDBManager } = await import("../../../components/StoryDBManager.js");
       const manager = new StoryDBManager(rootElement, this.storyDB);
       await manager.render();
@@ -77,6 +79,7 @@ export class StoryDBManagerView {
     }
   }
 
+  // ==================== FALLBACK UI ====================
   renderFallback() {
     const rootElement = document.getElementById("story-db-manager-root");
     if (!rootElement) return;
@@ -94,6 +97,11 @@ export class StoryDBManagerView {
       </div>
     `;
 
+    this.setupFallbackHandlers(rootElement);
+  }
+
+  // ==================== FALLBACK HANDLERS ====================
+  setupFallbackHandlers(rootElement) {
     const statusDiv = rootElement.querySelector("#db-status");
     const button = rootElement.querySelector("#test-db");
 
@@ -113,9 +121,10 @@ export class StoryDBManagerView {
       }
     });
 
-    button.click(); // auto-test
+    button.click(); // Auto-test on load
   }
 
+  // ==================== ERROR HANDLING ====================
   showError(message) {
     const rootElement = document.getElementById("story-db-manager-root");
     if (!rootElement) return;
@@ -131,6 +140,7 @@ export class StoryDBManagerView {
     `;
   }
 
+  // ==================== CLEANUP ====================
   destroy() {
     const rootElement = document.getElementById("story-db-manager-root");
     if (rootElement) rootElement.innerHTML = "";

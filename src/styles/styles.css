@@ -1,4 +1,4 @@
-/* Reset and base styles */
+/* ==================== RESET & BASE STYLES ==================== */
 * {
   margin: 0;
   padding: 0;
@@ -13,7 +13,7 @@ body {
   min-height: 100vh;
 }
 
-/* App container */
+/* ==================== APP CONTAINER ==================== */
 #app {
   max-width: 1200px;
   margin: 20px auto;
@@ -27,7 +27,7 @@ body {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Page transition animations */
+/* ==================== ANIMATIONS & TRANSITIONS ==================== */
 .page-exit {
   animation: pageExit 0.25s cubic-bezier(0.4, 0, 0.6, 1) forwards;
 }
@@ -37,65 +37,62 @@ body {
 }
 
 @keyframes pageExit {
-  from {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.98);
-  }
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-20px) scale(0.98); }
 }
 
 @keyframes pageEnter {
-  from {
-    opacity: 0;
-    transform: translateY(30px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* View Transition API */
+@keyframes contentFadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes loadingPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.05); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* ==================== VIEW TRANSITION API ==================== */
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation-duration: 0.4s;
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-::view-transition-old(root) {
-  animation-name: slideOutUp;
-}
-
-::view-transition-new(root) {
-  animation-name: slideInUp;
-}
+::view-transition-old(root) { animation-name: slideOutUp; }
+::view-transition-new(root) { animation-name: slideInUp; }
 
 @keyframes slideOutUp {
-  from {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-30px) scale(0.95);
-  }
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-30px) scale(0.95); }
 }
 
 @keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(50px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(50px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Hero section */
+/* ==================== HERO SECTION ==================== */
 .hero-wrapper {
   display: grid;
   place-items: center;
@@ -131,7 +128,7 @@ body.login-page .hero-wrapper {
   animation: fadeInUp 1s ease-out 0.2s both;
 }
 
-/* Navigation buttons */
+/* ==================== NAVIGATION BUTTONS ==================== */
 .nav-buttons {
   display: flex;
   flex-wrap: wrap;
@@ -167,10 +164,7 @@ body.login-page .hero-wrapper {
   transition: left 0.5s;
 }
 
-.nav-buttons button:hover::before {
-  left: 100%;
-}
-
+.nav-buttons button:hover::before { left: 100%; }
 .nav-buttons button:hover {
   transform: translateY(-3px) scale(1.05);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
@@ -186,7 +180,7 @@ body.login-page .hero-wrapper {
   outline-offset: 2px;
 }
 
-/* Stories grid */
+/* ==================== STORIES GRID & CARDS ==================== */
 .stories-grid {
   display: grid;
   gap: 20px;
@@ -195,7 +189,6 @@ body.login-page .hero-wrapper {
   animation: contentFadeIn 0.8s ease 0.3s forwards;
 }
 
-/* Story card */
 .story-card {
   background: #fff;
   border: 1px solid #e0e0e0;
@@ -220,9 +213,7 @@ body.login-page .hero-wrapper {
   transition: transform 0.3s ease;
 }
 
-.story-card:hover img {
-  transform: scale(1.05);
-}
+.story-card:hover img { transform: scale(1.05); }
 
 .story-card h3 {
   font-size: 1.3rem;
@@ -241,7 +232,7 @@ body.login-page .hero-wrapper {
   font-style: italic;
 }
 
-/* Story form */
+/* ==================== FORMS ==================== */
 .story-form {
   background: #fff;
   padding: 30px;
@@ -287,7 +278,7 @@ body.login-page .hero-wrapper {
   resize: vertical;
 }
 
-/* Submit button */
+/* ==================== BUTTONS ==================== */
 button[type="submit"] {
   background: linear-gradient(45deg, #4caf50, #45a049);
   color: #fff;
@@ -305,7 +296,6 @@ button[type="submit"]:hover {
   box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
 }
 
-/* Camera & cancel buttons */
 #camera-btn,
 #cancel-btn {
   background: linear-gradient(45deg, #ff9800, #f57c00);
@@ -325,112 +315,7 @@ button[type="submit"]:hover {
   box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4);
 }
 
-/* Camera preview */
-#camera-preview {
-  border-radius: 10px;
-  margin-top: 10px;
-  border: 3px dashed #667eea;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-#camera-preview:hover {
-  border-color: #764ba2;
-  transform: scale(1.02);
-}
-
-/* Loading */
-.loading {
-  text-align: center;
-  padding: 50px;
-  font-size: 1.2rem;
-  color: #667eea;
-  animation: loadingPulse 2s infinite;
-}
-
-/* Animations */
-@keyframes loadingPulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.6;
-    transform: scale(1.05);
-  }
-}
-
-@keyframes shake {
-  0%, 100% {
-    transform: translateX(0);
-  }
-  25% {
-    transform: translateX(-5px);
-  }
-  75% {
-    transform: translateX(5px);
-  }
-}
-
-@keyframes contentFadeIn {
-  0% {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Error Message */
-.error {
-  background-color: #ffebee;
-  color: #c62828;
-  padding: 15px;
-  margin: 20px 0;
-  border-left: 4px solid #c62828;
-  border-radius: 8px;
-  animation: shake 0.5s ease-in-out;
-}
-
-/* Map Styles */
-#map,
-#add-map {
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  transition: box-shadow 0.3s ease;
-}
-
-#map:hover,
-#add-map:hover {
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
-
-/* Authentication Container */
+/* ==================== AUTHENTICATION ==================== */
 .auth-container {
   display: flex;
   justify-content: center;
@@ -482,9 +367,7 @@ button[type="submit"]:hover {
   border: none;
   cursor: pointer;
   border-bottom: 2px solid transparent;
-  transition: color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-              border-bottom-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .tab-btn.active {
@@ -498,9 +381,7 @@ button[type="submit"]:hover {
   transform: translateY(-1px);
 }
 
-.auth-form-content {
-  animation: fadeIn 0.4s ease-out;
-}
+.auth-form-content { animation: fadeIn 0.4s ease-out; }
 
 .auth-btn {
   width: 100%;
@@ -511,8 +392,7 @@ button[type="submit"]:hover {
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .auth-btn:hover {
@@ -520,39 +400,9 @@ button[type="submit"]:hover {
   box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
 }
 
-.auth-btn:active {
-  transform: translateY(0) scale(1);
-}
+.auth-btn:active { transform: translateY(0) scale(1); }
 
-/* Messages */
-.message {
-  margin-top: 15px;
-  padding: 10px;
-  font-size: 14px;
-  text-align: center;
-  border-radius: 5px;
-  animation: fadeInUp 0.3s ease-out;
-}
-
-.message.loading {
-  background-color: #e3f2fd;
-  color: #1976d2;
-  border: 1px solid #bbdefb;
-}
-
-.message.success {
-  background-color: #e8f5e8;
-  color: #2e7d32;
-  border: 1px solid #c8e6c9;
-}
-
-.message.error {
-  background-color: #ffebee;
-  color: #c62828;
-  border: 1px solid #ffcdd2;
-}
-
-/* Header */
+/* ==================== HEADER & USER INFO ==================== */
 .header {
   display: flex;
   flex-direction: column;
@@ -587,7 +437,7 @@ button[type="submit"]:hover {
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .logout-btn:hover {
@@ -596,7 +446,80 @@ button[type="submit"]:hover {
   box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
 }
 
-/* Responsive: Mobile */
+/* ==================== MESSAGES & STATUS ==================== */
+.loading {
+  text-align: center;
+  padding: 50px;
+  font-size: 1.2rem;
+  color: #667eea;
+  animation: loadingPulse 2s infinite;
+}
+
+.error {
+  background-color: #ffebee;
+  color: #c62828;
+  padding: 15px;
+  margin: 20px 0;
+  border-left: 4px solid #c62828;
+  border-radius: 8px;
+  animation: shake 0.5s ease-in-out;
+}
+
+.message {
+  margin-top: 15px;
+  padding: 10px;
+  font-size: 14px;
+  text-align: center;
+  border-radius: 5px;
+  animation: fadeInUp 0.3s ease-out;
+}
+
+.message.loading {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #bbdefb;
+}
+
+.message.success {
+  background-color: #e8f5e8;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+
+.message.error {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+}
+
+/* ==================== CAMERA & MAP ==================== */
+#camera-preview {
+  border-radius: 10px;
+  margin-top: 10px;
+  border: 3px dashed #667eea;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+#camera-preview:hover {
+  border-color: #764ba2;
+  transform: scale(1.02);
+}
+
+#map,
+#add-map {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s ease;
+}
+
+#map:hover,
+#add-map:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* ==================== RESPONSIVE: MOBILE ==================== */
 @media (max-width: 768px) {
   #app {
     margin: 5px;
@@ -609,9 +532,7 @@ button[type="submit"]:hover {
     margin-bottom: 20px;
   }
 
-  .hero h1 {
-    font-size: 2rem;
-  }
+  .hero h1 { font-size: 2rem; }
 
   .nav-buttons {
     flex-direction: column;
@@ -634,13 +555,8 @@ button[type="submit"]:hover {
     margin: 0 5px;
   }
 
-  .auth-container {
-    padding: 10px;
-  }
-
-  .auth-form {
-    padding: 30px 20px;
-  }
+  .auth-container { padding: 10px; }
+  .auth-form { padding: 30px 20px; }
 
   .header {
     flex-direction: column;
@@ -655,37 +571,19 @@ button[type="submit"]:hover {
   }
 }
 
-/* Responsive: Ultra-wide screens */
+/* ==================== RESPONSIVE: ULTRA-WIDE ==================== */
 @media (min-width: 1400px) {
-  #app {
-    max-width: 1400px;
-  }
-
-  .stories-grid {
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  }
+  #app { max-width: 1400px; }
+  .stories-grid { grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); }
 }
 
-/* Accessibility: Reduced motion */
+/* ==================== ACCESSIBILITY: REDUCED MOTION ==================== */
 @media (prefers-reduced-motion: reduce) {
-  #app,
-  .page-enter,
-  .page-exit,
-  ::view-transition-old(root),
-  ::view-transition-new(root),
-  .hero,
-  .nav-buttons,
-  .stories-grid,
-  .story-form,
-  .auth-form,
-  * {
+  #app, .page-enter, .page-exit, ::view-transition-old(root),
+  ::view-transition-new(root), .hero, .nav-buttons, .stories-grid,
+  .story-form, .auth-form, * {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }
-
-
-
-
-

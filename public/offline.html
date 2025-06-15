@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Offline - Story Share App</title>
+    <meta name="theme-color" content="#6366f1" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #333;
+      }
+
+      .offline-container {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        padding: 40px;
+        text-align: center;
+        max-width: 500px;
+        margin: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      }
+
+      .offline-icon {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+      }
+
+      h1 {
+        color: #6366f1;
+        margin-bottom: 20px;
+        font-size: 2rem;
+      }
+
+      p {
+        color: #666;
+        margin-bottom: 30px;
+        line-height: 1.6;
+        font-size: 1.1rem;
+      }
+
+      .actions {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      button {
+        background: #6366f1;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 120px;
+      }
+
+      button:hover {
+        background: #4f46e5;
+        transform: translateY(-2px);
+      }
+
+      .secondary-btn {
+        background: #e2e8f0;
+        color: #64748b;
+      }
+
+      .secondary-btn:hover {
+        background: #cbd5e1;
+        color: #475569;
+      }
+
+      .feature-list {
+        text-align: left;
+        margin: 30px 0;
+        background: #f8fafc;
+        padding: 20px;
+        border-radius: 12px;
+      }
+
+      .feature-list h3 {
+        color: #374151;
+        margin-bottom: 15px;
+        font-size: 1.1rem;
+      }
+
+      .feature-list ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      .feature-list li {
+        padding: 8px 0;
+        color: #6b7280;
+        position: relative;
+        padding-left: 25px;
+      }
+
+      .feature-list li::before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: #10b981;
+        font-weight: bold;
+      }
+
+      .status-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 20px;
+        padding: 10px 16px;
+        background: #fef3c7;
+        color: #92400e;
+        border-radius: 8px;
+        font-size: 0.9rem;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #f59e0b;
+        animation: blink 1.5s infinite;
+      }
+
+      @keyframes blink {
+        0%,
+        50% {
+          opacity: 1;
+        }
+        51%,
+        100% {
+          opacity: 0.3;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .offline-container {
+          padding: 30px 20px;
+          margin: 10px;
+        }
+
+        h1 {
+          font-size: 1.5rem;
+        }
+
+        .actions {
+          flex-direction: column;
+        }
+
+        button {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="offline-container">
+      <div class="offline-icon">📱</div>
+      <h1>Sedang Offline</h1>
+      <p>
+        Anda sedang offline, tetapi Anda masih dapat menggunakan fitur-fitur
+        yang tersedia.
+      </p>
+
+      <div class="feature-list">
+        <h3>🔍 Yang Bisa Dilakukan Offline:</h3>
+        <ul>
+          <li>Melihat stories yang telah disimpan</li>
+          <li>Membaca data dari cache lokal</li>
+          <li>Menambah story baru (akan disinkronkan saat online)</li>
+          <li>Mengakses halaman yang pernah dikunjungi</li>
+        </ul>
+      </div>
+
+      <div class="status-indicator">
+        <div class="status-dot"></div>
+        Menunggu koneksi internet...
+      </div>
+
+      <div class="actions">
+        <button onclick="window.location.reload()">🔄 Coba Lagi</button>
+        <button class="secondary-btn" onclick="goBack()">← Kembali</button>
+      </div>
+    </div>
+
+    <script>
+      // Auto-reload when back online
+      window.addEventListener("online", () => {
+        console.log("Back online, reloading...");
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      });
+
+      // Safe back navigation
+      function goBack() {
+        // Try to go back, but fallback to cached home if no history
+        if (window.history.length > 1) {
+          history.back();
+        } else {
+          // Try to go to cached home page
+          window.location.href = "/";
+        }
+      }
+
+      // Update status indicator
+      function updateStatus() {
+        const indicator = document.querySelector(".status-indicator");
+        if (navigator.onLine) {
+          indicator.innerHTML =
+            '<div style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></div> Terhubung! Memuat ulang...';
+          indicator.style.background = "#d1fae5";
+          indicator.style.color = "#065f46";
+          setTimeout(() => window.location.reload(), 1000);
+        }
+      }
+
+      // Check connection periodically
+      setInterval(updateStatus, 2000);
+
+      // Initial check
+      updateStatus();
+    </script>
+  </body>
+</html>

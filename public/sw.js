@@ -1,289 +1,345 @@
-const CACHE_NAME = 'story-cache-v4';
-const OFFLINE_URL = '/offline.html';
-const API_CACHE_NAME = 'api-cache-v2';
-
-// Precached resources
-const PRECACHE_URLS = [
-  '/',
-  '/index.html',
-  OFFLINE_URL,
-  '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/src/styles/styles.css',
-  '/src/scripts/app.js',
-  '/src/utils/indexedDB.js'
-];
-
-// API endpoints to cache
-const API_ENDPOINTS = [
-  '/api/stories',
-  '/api/login'
-];
-
-// ==================== INSTALL ==================== //
-self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker...');
-  
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('[SW] Caching essential resources');
-        return cache.addAll(PRECACHE_URLS);
-      })
-      .then(() => self.skipWaiting())
-  );
-});
-
-// ==================== ACTIVATE ==================== //
-self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker...');
-  
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (![CACHE_NAME, API_CACHE_NAME].includes(cacheName)) {
-            console.log('[SW] Removing old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
-  );
-});
-
-// ==================== FETCH HANDLER ==================== //
-self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  
-  // Skip non-GET requests and non-http requests
-  if (request.method !== 'GET' || !request.url.startsWith('http')) return;
-
-  // Handle navigation requests
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request).catch(() => caches.match(OFFLINE_URL))
+const CONFIG = {
+  VERSION: "v6",
+  CACHE_NAME: "story-cache-v6",
+  API_CACHE_NAME: "api-cache-v4",
+  OFFLINE_URL: "/offline.html",
+  API_BASE_URL: "https://story-api.dicoding.dev/v1",
+  PRECACHE_URLS: [
+    "/offline.html",
+    "/icons/apple-touch-icon.png",
+    "/icons/icon-96x96.png",
+    "/icons/icon-192x192.png",
+    "/icons/icon-512x512.png",
+    "/icons/icon.ico",
+    "/icons/icon.svg",
+  ],
+  PRODUCTION_ONLY_URLS: ["/", "/index.html", "/manifest.json"],
+  OPTIONAL_FILES: [
+    "/manifest.json",
+    "/icons/apple-touch-icon.png",
+    "/icons/icon.ico",
+    "/icons/icon.svg",
+  ],
+  DEV_ASSETS: [
+    "@vite/client",
+    "src/scripts/",
+    "src/styles/",
+    "?import",
+    "node_modules",
+    ".js?v=",
+    ".css?v=",
+    "__vite_ping",
+  ],
+  IGNORED_FILES: ["/favicon.ico"],
+  get isDevelopment() {
+    return (
+      location.hostname === "localhost" || location.hostname === "127.0.0.1"
     );
-    return;
-  }
+  },
+};
 
-  // Handle API requests
-  if (isApiRequest(request)) {
-    event.respondWith(handleApiRequest(request));
-    return;
-  }
+// ========== CACHE MANAGER ==========
+const cacheManager = {
+  async install() {
+    const cache = await caches.open(CONFIG.CACHE_NAME);
+    await cacheManager.cacheFile(cache, CONFIG.OFFLINE_URL);
 
-  // Handle static assets
-  event.respondWith(handleAssetRequest(request));
-});
+    const coreFiles = CONFIG.PRECACHE_URLS.filter(
+      (url) => url !== CONFIG.OFFLINE_URL
+    );
+    const allFiles = CONFIG.isDevelopment
+      ? coreFiles
+      : [...coreFiles, ...CONFIG.PRODUCTION_ONLY_URLS];
 
-// ==================== API REQUEST HANDLER ==================== //
-async function handleApiRequest(request) {
-  try {
-    // Try network first
-    const networkResponse = await fetch(request);
-    
-    // Cache successful API responses
-    if (networkResponse.ok) {
-      const clone = networkResponse.clone();
-      caches.open(API_CACHE_NAME)
-        .then(cache => cache.put(request, clone));
-    }
-    
-    return networkResponse;
-  } catch (error) {
-    console.log('[SW] Network failed, checking cache for:', request.url);
-    
-    // Check cache for API response
-    const cachedResponse = await caches.match(request);
-    if (cachedResponse) return cachedResponse;
-    
-    // For POST requests, store in IndexedDB for later sync
-    if (request.method === 'POST') {
-      const requestData = await request.clone().json();
-      return handleOfflinePost(request.url, requestData);
-    }
-    
-    return createOfflineResponse();
-  }
-}
+    await cacheManager.cacheFiles(cache, allFiles);
+    console.log("[SW] Pre-caching completed");
+    return self.skipWaiting();
+  },
 
-// ==================== ASSET REQUEST HANDLER ==================== //
-async function handleAssetRequest(request) {
-  const cachedResponse = await caches.match(request);
-  if (cachedResponse) {
-    console.log('[SW] Cache hit:', request.url);
-    return cachedResponse;
-  }
+  async activate() {
+    const cacheNames = await caches.keys();
+    await Promise.all(
+      cacheNames
+        .filter(
+          (name) => name !== CONFIG.CACHE_NAME && name !== CONFIG.API_CACHE_NAME
+        )
+        .map((name) => {
+          console.log("[SW] Deleting old cache:", name);
+          return caches.delete(name);
+        })
+    );
+    await self.clients.claim();
+    console.log("[SW] Service worker activated");
+  },
 
-  try {
-    const networkResponse = await fetch(request);
-    
-    // Cache dynamic resources
-    if (networkResponse.ok) {
-      const clone = networkResponse.clone();
-      caches.open(CACHE_NAME)
-        .then(cache => cache.put(request, clone));
-    }
-    
-    return networkResponse;
-  } catch (error) {
-    console.log('[SW] Network failed for:', request.url);
-    return Response.error();
-  }
-}
-
-// ==================== OFFLINE POST HANDLER ==================== //
-async function handleOfflinePost(url, data) {
-  console.log('[SW] Storing offline data for:', url);
-  
-  // Store in IndexedDB
-  const db = await openIDB();
-  const tx = db.transaction('pendingRequests', 'readwrite');
-  const store = tx.objectStore('pendingRequests');
-  
-  await store.add({
-    url,
-    data,
-    timestamp: Date.now()
-  });
-  
-  return new Response(JSON.stringify({
-    success: true,
-    message: "Stored offline. Will sync when online.",
-    offline: true
-  }), {
-    headers: { 'Content-Type': 'application/json' }
-  });
-}
-
-// ==================== BACKGROUND SYNC ==================== //
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-pending') {
-    console.log('[SW] Background sync triggered');
-    event.waitUntil(syncPendingRequests());
-  }
-});
-
-async function syncPendingRequests() {
-  console.log('[SW] Syncing pending requests...');
-  const db = await openIDB();
-  const tx = db.transaction('pendingRequests', 'readwrite');
-  const store = tx.objectStore('pendingRequests');
-  const requests = await store.getAll();
-
-  const results = [];
-  
-  for (const request of requests) {
+  async cacheFile(cache, url) {
     try {
-      const response = await fetch(request.url, {
+      if (CONFIG.OPTIONAL_FILES.includes(url)) {
+        const response = await fetch(url, { method: "HEAD" });
+        if (!response.ok) {
+          console.log(`[SW] Skipping optional file: ${url}`);
+          return;
+        }
+      }
+      await cache.add(url);
+      console.log(`[SW] Cached: ${url}`);
+    } catch (error) {
+      if (CONFIG.OPTIONAL_FILES.includes(url)) {
+        console.log(`[SW] Skipping optional file: ${url}`);
+      } else {
+        console.warn(`[SW] Failed to cache ${url}:`, error.message);
+      }
+    }
+  },
+
+  async cacheFiles(cache, urls) {
+    for (const url of urls) {
+      await cacheManager.cacheFile(cache, url);
+    }
+  },
+};
+
+// ========== NOTIFICATION MANAGER ==========
+const notificationManager = {
+  async handlePush(event) {
+    let payload = { title: "Notifikasi", body: "Pesan baru diterima." };
+    try {
+      if (event.data) payload = event.data.json();
+    } catch (err) {
+      console.warn("[SW] Gagal parsing push payload", err);
+    }
+
+    const options = {
+      body: payload.body,
+      icon: "/icons/icon-192x192.png",
+      badge: "/icons/icon-192x192.png",
+      data: { url: payload.url || "/" },
+    };
+
+    return self.registration.showNotification(payload.title, options);
+  },
+
+  async handleClick(event) {
+    event.notification.close();
+    const urlToOpen = event.notification.data?.url || "/";
+    const allClients = await clients.matchAll({ type: "window" });
+
+    for (const client of allClients) {
+      if (client.url === urlToOpen && "focus" in client) {
+        return client.focus();
+      }
+    }
+
+    if (clients.openWindow) {
+      return clients.openWindow(urlToOpen);
+    }
+  },
+  
+  async handleSubscription(subscription) {
+    try {
+      const token = await this.getStoredToken();
+      const response = await fetch(`${CONFIG.API_BASE_URL}/subscribe`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request.data)
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          subscription: subscription,
+          userAgent: navigator.userAgent
+        })
       });
       
       if (response.ok) {
-        await store.delete(request.timestamp);
-        results.push({
-          url: request.url,
-          status: 'success'
-        });
+        console.log('[SW] Push subscription saved to server');
       }
     } catch (error) {
-      results.push({
-        url: request.url,
-        status: 'failed',
-        error: error.message
-      });
+      console.warn('[SW] Failed to save subscription:', error);
     }
-  }
-  
-  if (results.some(r => r.status === 'success')) {
-    await self.registration.showNotification('Sync Complete', {
-      body: `Synced ${results.filter(r => r.status === 'success').length} items`,
-      icon: '/icons/icon-192x192.png'
+  },
+
+  async getStoredToken() {
+    return new Promise((resolve) => {
+      self.clients.matchAll().then(clients => {
+        if (clients.length > 0) {
+          clients[0].postMessage({ type: 'GET_AUTH_TOKEN' });
+        }
+        resolve(null);
+      });
     });
   }
-  
-  return results;
+};
+
+// ========== REQUEST HANDLER ==========
+const requestHandler = {
+  async handle(request) {
+    if (request.method !== "GET" || !request.url.startsWith("http")) {
+      return fetch(request);
+    }
+
+    const url = new URL(request.url);
+    if (shouldSkipRequest(url, request)) {
+      return fetch(request);
+    }
+
+    if (request.mode === "navigate") {
+      return navigationHandler.handle(request);
+    }
+
+    if (isApiRequest(request)) {
+      return apiHandler.handle(request);
+    }
+
+    if (!CONFIG.isDevelopment || !isDevelopmentAsset(request.url)) {
+      return assetHandler.handle(request);
+    }
+
+    return fetch(request);
+  },
+};
+
+function shouldSkipRequest(url, request) {
+  return (
+    url.protocol.startsWith("chrome-extension") ||
+    CONFIG.IGNORED_FILES.some((ignored) => request.url.endsWith(ignored)) ||
+    (CONFIG.isDevelopment && isDevelopmentAsset(request.url))
+  );
 }
 
-// ==================== PUSH NOTIFICATIONS ==================== //
-self.addEventListener('push', (event) => {
-  const payload = event.data?.json() || {
-    title: 'New Story',
-    body: 'A new story has been published!'
-  };
-  
-  event.waitUntil(
-    self.registration.showNotification(payload.title, {
-      body: payload.body,
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-96x96.png',
-      data: { url: payload.url || '/' },
-      vibrate: [200, 100, 200]
-    })
-  );
-});
-
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  event.waitUntil(
-    clients.matchAll({ type: 'window' })
-      .then((clients) => {
-        const targetUrl = event.notification.data.url;
-        const client = clients.find(c => c.url === targetUrl);
-        
-        if (client) return client.focus();
-        return clients.openWindow(targetUrl);
-      })
-  );
-});
-
-// ==================== INDEXEDDB HELPERS ==================== //
-function openIDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('StoryShareDB', 2);
-    
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains('pendingRequests')) {
-        db.createObjectStore('pendingRequests', { keyPath: 'timestamp' });
-      }
-    };
-    
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
+function isDevelopmentAsset(url) {
+  return CONFIG.DEV_ASSETS.some((asset) => url.includes(asset));
 }
 
-// ==================== UTILITY FUNCTIONS ==================== //
 function isApiRequest(request) {
-  return API_ENDPOINTS.some(endpoint => 
-    request.url.includes(endpoint)
+  return (
+    request.url.includes(CONFIG.API_BASE_URL) ||
+    request.url.includes("/api/") ||
+    request.url.includes("story-api.dicoding.dev")
   );
 }
 
-function createOfflineResponse() {
-  return new Response(JSON.stringify({ 
-    error: "You're offline",
-    offline: true
-  }), {
-    headers: { 'Content-Type': 'application/json' }
-  });
+// ========== HANDLERS ==========
+const navigationHandler = {
+  async handle(request) {
+    try {
+      const networkResponse = await fetch(request);
+      if (!CONFIG.isDevelopment && networkResponse.ok) {
+        const cache = await caches.open(CONFIG.CACHE_NAME);
+        cache.put(request, networkResponse.clone()).catch(console.warn);
+      }
+      return networkResponse;
+    } catch (error) {
+      return navigationHandler.handleOfflineNavigation(request);
+    }
+  },
+
+  async handleOfflineNavigation(request) {
+    const cache = await caches.open(CONFIG.CACHE_NAME);
+    let cached = await cache.match(request.url);
+    if (cached) return cached;
+
+    const urlWithoutQuery = request.url.split("?")[0];
+    cached = await cache.match(urlWithoutQuery);
+    if (cached) return cached;
+
+    if (request.url.endsWith("/") || request.url.includes("index")) {
+      cached = (await cache.match("/index.html")) || (await cache.match("/"));
+      if (cached) return cached;
+    }
+
+    return cache.match(CONFIG.OFFLINE_URL) || createFallbackOfflinePage();
+  },
+};
+
+function createFallbackOfflinePage() {
+  return new Response(
+    '<html><body><h1>Offline</h1><p>No connection</p><button onclick="location.reload()">Retry</button></body></html>',
+    { status: 200, headers: { "Content-Type": "text/html" } }
+  );
 }
 
-// ==================== MESSAGE HANDLER ==================== //
-self.addEventListener('message', (event) => {
-  switch (event.data.type) {
-    case 'SKIP_WAITING':
+const apiHandler = {
+  async handle(request) {
+    const cache = await caches.open(CONFIG.API_CACHE_NAME);
+    try {
+      const networkResponse = await fetch(request);
+      if (networkResponse.ok) {
+        cache.put(request, networkResponse.clone());
+      }
+      return networkResponse;
+    } catch (error) {
+      return cache.match(request);
+    }
+  },
+};
+
+const assetHandler = {
+  async handle(request) {
+    const cache = await caches.open(CONFIG.CACHE_NAME);
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    try {
+      const networkResponse = await fetch(request);
+      if (networkResponse.ok) {
+        cache.put(request, networkResponse.clone());
+      }
+      return networkResponse;
+    } catch {
+      return cached;
+    }
+  },
+};
+
+// ========== SYNC PLACEHOLDER ==========
+const offlineManager = {
+  async syncPendingRequests() {
+    console.log("[SW] Syncing pending requests (placeholder)");
+  },
+  triggerSync(event) {
+    self.registration.sync.register("background-sync").catch(console.error);
+  },
+};
+
+// ========== EVENTS ==========
+self.addEventListener("install", (event) => {
+  console.log(`[SW] Installing service worker v${CONFIG.VERSION}...`);
+  event.waitUntil(cacheManager.install());
+});
+
+self.addEventListener("activate", (event) => {
+  console.log("[SW] Activating service worker...");
+  event.waitUntil(cacheManager.activate());
+});
+
+self.addEventListener("fetch", (event) => {
+  event.respondWith(requestHandler.handle(event.request));
+});
+
+self.addEventListener("sync", (event) => {
+  if (event.tag === "background-sync") {
+    event.waitUntil(offlineManager.syncPendingRequests());
+  }
+});
+
+self.addEventListener("push", (event) => {
+  event.waitUntil(notificationManager.handlePush(event));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.waitUntil(notificationManager.handleClick(event));
+});
+
+self.addEventListener("message", (event) => {
+  switch (event.data?.type) {
+    case "SKIP_WAITING":
       self.skipWaiting();
       break;
-      
-    case 'TRIGGER_SYNC':
-      self.registration.sync.register('sync-pending')
-        .then(() => console.log('[SW] Sync registered'))
-        .catch(console.error);
+    case "TRIGGER_SYNC":
+      offlineManager.triggerSync(event);
+      break;
+    case "GET_VERSION":
+      event.ports[0]?.postMessage({ version: CONFIG.CACHE_NAME });
       break;
   }
 });
+

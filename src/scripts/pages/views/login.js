@@ -1,11 +1,14 @@
 import { LoginPresenter } from "../../presenters/login-presenters.js";
 import { AuthService } from "../../data/api.js";
 
+// ==================== LOGIN VIEW CLASS ====================
 export class LoginView {
+  // ==================== CONSTRUCTOR ====================
   constructor() {
     this.presenter = null;
   }
 
+  // ==================== MAIN RENDER ====================
   render() {
     return `
       <div class="auth-container">
@@ -57,79 +60,113 @@ export class LoginView {
     `;
   }
 
+  // ==================== AFTER RENDER SETUP ====================
   async afterRender() {
+    // Initialize presenter with AuthService
     this.presenter = new LoginPresenter(new AuthService(), this);
-    document.body.classList.add("login-page"); // Hide hero section
+    
+    // Add login page styling class
+    document.body.classList.add("login-page"); 
+    
+    // Setup event listeners and initialize presenter
     this.setupEventListeners();
     this.presenter.initialize();
   }
 
+  // ==================== EVENT LISTENERS SETUP ====================
   setupEventListeners() {
+    // Login tab click handler
     document.getElementById("login-tab").addEventListener("click", () =>
       this.presenter.handleTabSwitch("login")
     );
 
+    // Register tab click handler
     document.getElementById("register-tab").addEventListener("click", () =>
       this.presenter.handleTabSwitch("register")
     );
 
+    // Login form submission handler
     document.getElementById("login-form").addEventListener("submit", (e) => {
       e.preventDefault();
       this.presenter.handleLogin(new FormData(e.target));
     });
 
+    // Register form submission handler
     document.getElementById("register-form").addEventListener("submit", (e) => {
       e.preventDefault();
       this.presenter.handleRegister(new FormData(e.target));
     });
   }
 
-  // View update helpers
+  // ==================== TAB SWITCHING METHODS ====================
+
+  // Show Login Tab
   showLoginTab() {
     this.toggleTabs(true);
     this.clearMessage();
   }
 
+  // Show Register Tab
   showRegisterTab() {
     this.toggleTabs(false);
     this.clearMessage();
   }
 
+  // Toggle Between Login and Register Tabs
   toggleTabs(showLogin) {
+    // Update tab button states
     document.getElementById("login-tab").classList.toggle("active", showLogin);
     document.getElementById("register-tab").classList.toggle("active", !showLogin);
+    
+    // Toggle form visibility
     document.getElementById("login-form").style.display = showLogin ? "block" : "none";
     document.getElementById("register-form").style.display = showLogin ? "none" : "block";
   }
 
+  // ==================== MESSAGE DISPLAY METHODS ====================
+
+  // Show Loading Message
   showLoading(message) {
     this.showMessage(message, "loading");
   }
 
+  // Show Success Message
   showSuccess(message) {
     this.showMessage(message, "success");
   }
 
+  // Show Error Message
   showError(message) {
     this.showMessage(message, "error");
   }
 
+  // Clear Message Display
   clearMessage() {
     this.showMessage("", "");
   }
 
+  // Generic Message Display
   showMessage(text, type) {
     const msg = document.getElementById("auth-message");
     msg.className = `message ${type}`;
     msg.textContent = text;
   }
 
+  // ==================== FORM HELPER METHODS ====================
+
+  // Set Login Email Field Value
   setLoginEmail(email) {
     document.getElementById("login-email").value = email;
   }
 
+  // ==================== NAVIGATION METHODS ====================
+
+  // Navigate to Home Page
   navigateToHome() {
-    document.body.classList.remove("login-page"); // Show hero again
+    // Remove login page styling
+    document.body.classList.remove("login-page");
+    
+    // Navigate to home route
     window.location.hash = "#/";
   }
 }

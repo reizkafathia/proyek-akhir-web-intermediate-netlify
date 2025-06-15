@@ -1,12 +1,14 @@
 import { AuthService } from "../data/api.js";
 import NotificationManager from "../../utils/notification.js";
 
+// ==================== CLASS DEFINITION ====================
 export class HomePresenter {
   constructor(model, view) {
     this.model = model;
     this.view = view;
   }
 
+  // ==================== INITIALIZATION ====================
   // Initialization: check login and load stories
   async initialize() {
     if (!AuthService.isLoggedIn()) {
@@ -16,6 +18,7 @@ export class HomePresenter {
     await this.handleShowStories();
   }
 
+  // ==================== STORY MANAGEMENT ====================
   // Load and show stories
   async handleShowStories() {
     try {
@@ -32,36 +35,6 @@ export class HomePresenter {
   // Show form to add new story
   handleShowAddStoryForm() {
     this.view.renderAddStoryForm();
-  }
-
-  // Logout user and redirect to login page
-  handleLogout() {
-    try {
-      if (confirm("Are you sure you want to logout?")) {
-        AuthService.logout();
-        NotificationManager.showLocalNotification("Logged out", {
-          body: "You have been logged out successfully",
-        });
-        // Redundant but safe:
-        window.location.hash = "#/login";
-      }
-    } catch (error) {
-      console.error("Logout error:", error);
-      this.view.showError("Failed to logout");
-    }
-  }
-
-  // Start or toggle camera view
-  async handleCameraToggle() {
-    try {
-      const success = await this.view.startCamera();
-      if (!success) {
-        this.view.showError("Failed to access camera");
-      }
-    } catch (error) {
-      console.error("Camera error:", error);
-      this.view.showError("Failed to access camera: " + error.message);
-    }
   }
 
   // Add new story with validation
@@ -107,6 +80,38 @@ export class HomePresenter {
     } catch (error) {
       console.error("Error adding story:", error);
       this.view.showError(error.message || "Failed to add story");
+    }
+  }
+
+  // ==================== USER AUTHENTICATION ====================
+  // Logout user and redirect to login page
+  handleLogout() {
+    try {
+      if (confirm("Are you sure you want to logout?")) {
+        AuthService.logout();
+        NotificationManager.showLocalNotification("Logged out", {
+          body: "You have been logged out successfully",
+        });
+        // Redundant but safe:
+        window.location.hash = "#/login";
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+      this.view.showError("Failed to logout");
+    }
+  }
+
+  // ==================== CAMERA FUNCTIONALITY ====================
+  // Start or toggle camera view
+  async handleCameraToggle() {
+    try {
+      const success = await this.view.startCamera();
+      if (!success) {
+        this.view.showError("Failed to access camera");
+      }
+    } catch (error) {
+      console.error("Camera error:", error);
+      this.view.showError("Failed to access camera: " + error.message);
     }
   }
 }

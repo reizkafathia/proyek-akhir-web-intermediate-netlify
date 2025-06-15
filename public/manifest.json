@@ -2,8 +2,8 @@
   "name": "Story Maps App - PWA",
   "short_name": "StoryMaps",
   "description": "Progressive Web App untuk berbagi story dengan lokasi",
-  "start_url": "/proyek-akhir-web-intermediate/",
-  "scope": "/proyek-akhir-web-intermediate/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#ffffff",
@@ -25,7 +25,7 @@
       "purpose": "any maskable"
     },
     {
-      "src": "icons/logo-512x512.png",
+      "src": "icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -36,7 +36,7 @@
       "name": "Tambah Story",
       "short_name": "Add Story",
       "description": "Langsung tambah story baru",
-      "url": "/proyek-akhir-web-intermediate/#add-story",
+      "url": "/#add-story",
       "icons": [
         {
           "src": "icons/icon-96x96.png",
@@ -49,7 +49,7 @@
       "name": "Lihat Stories",
       "short_name": "Stories",
       "description": "Lihat semua stories",
-      "url": "/proyek-akhir-web-intermediate/#stories",
+      "url": "/#stories",
       "icons": [
         {
           "src": "icons/icon-96x96.png",

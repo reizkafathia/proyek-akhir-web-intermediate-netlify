@@ -1,10 +1,11 @@
-// src/components/StoryDBManager.js
 export default class StoryDBManager {
+  // ==================== CONSTRUCTOR ====================
   constructor(rootElement, storyDB) {
     this.root = rootElement;
     this.storyDB = storyDB;
   }
 
+  // ==================== MAIN RENDER ====================
   async render() {
     this.root.innerHTML = `
       <div class="p-6 max-w-4xl mx-auto">
@@ -31,18 +32,22 @@ export default class StoryDBManager {
       </div>
     `;
 
+    // ==================== DOM ELEMENTS ====================
     this.refreshButton = this.root.querySelector('#refresh-btn');
     this.clearDataButton = this.root.querySelector('#clear-data-btn');
     this.statusDiv = this.root.querySelector('#db-status');
     this.storiesListDiv = this.root.querySelector('#stories-list');
 
+    // ==================== EVENT LISTENERS ====================
     this.refreshButton.addEventListener('click', () => this.loadStats());
     this.clearDataButton.addEventListener('click', () => this.clearAllData());
     
+    // ==================== INITIAL LOAD ====================
     await this.loadStats();
     await this.loadStories();
   }
 
+  // ==================== LOAD STATS ====================
   async loadStats() {
     this.statusDiv.textContent = 'Fetching stats...';
 
@@ -62,6 +67,7 @@ export default class StoryDBManager {
     }
   }
 
+  // ==================== LOAD STORIES ====================
   async loadStories() {
     this.storiesListDiv.textContent = 'Loading stories...';
 
@@ -75,6 +81,7 @@ export default class StoryDBManager {
 
       let html = '<div class="space-y-4">';
       
+      // Published Stories Section
       if (data.stories.length > 0) {
         html += '<h3 class="font-medium text-green-700">Published Stories:</h3>';
         data.stories.forEach(story => {
@@ -82,6 +89,7 @@ export default class StoryDBManager {
         });
       }
 
+      // Draft Stories Section
       if (data.drafts.length > 0) {
         html += '<h3 class="font-medium text-yellow-700 mt-4">Draft Stories:</h3>';
         data.drafts.forEach(story => {
@@ -92,7 +100,7 @@ export default class StoryDBManager {
       html += '</div>';
       this.storiesListDiv.innerHTML = html;
 
-      // Add event listeners for delete buttons
+      // Add Delete Button Event Listeners
       this.root.querySelectorAll('.delete-story-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const storyId = parseInt(e.target.dataset.storyId);
@@ -106,6 +114,7 @@ export default class StoryDBManager {
     }
   }
 
+  // ==================== RENDER STORY CARD ====================
   renderStoryCard(story, isDraft) {
     return `
       <div class="border rounded p-3 ${isDraft ? 'border-yellow-200 bg-yellow-50' : 'border-green-200 bg-green-50'}">
@@ -130,6 +139,7 @@ export default class StoryDBManager {
     `;
   }
 
+  // ==================== DELETE STORY ====================
   async deleteStory(storyId, isDraft) {
     if (!confirm(`Are you sure you want to delete this ${isDraft ? 'draft' : 'story'}?`)) {
       return;
@@ -144,6 +154,7 @@ export default class StoryDBManager {
     }
   }
 
+  // ==================== CLEAR ALL DATA ====================
   async clearAllData() {
     if (!confirm('Are you sure you want to clear ALL data? This cannot be undone!')) {
       return;

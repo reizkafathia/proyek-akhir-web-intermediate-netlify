@@ -1,10 +1,12 @@
+// ==================== DATABASE INITIALIZATION ====================
+
 class StoryDB {
   constructor() {
     this.dbName = "StoryShareDB";
-    this.version = 3; // Increment version
+    this.version = 3;
     this.storyStore = "stories";
     this.draftStore = "drafts";
-    this.favoriteStore = "favorites"; // New store for favorites
+    this.favoriteStore = "favorites";
     this.db = null;
   }
 
@@ -23,15 +25,13 @@ class StoryDB {
 
       request.onsuccess = () => {
         this.db = request.result;
-        console.log('IndexedDB opened successfully');
         resolve(request.result);
       };
 
       request.onupgradeneeded = (event) => {
         const db = event.target.result;
-        console.log('Upgrading IndexedDB from version', event.oldVersion, 'to', event.newVersion);
 
-        // Store for published stories from API
+        // Create stories store
         if (!db.objectStoreNames.contains(this.storyStore)) {
           const storyStore = db.createObjectStore(this.storyStore, {
             keyPath: "id",
@@ -40,10 +40,9 @@ class StoryDB {
           storyStore.createIndex("apiId", "apiId", { unique: false });
           storyStore.createIndex("createdAt", "createdAt", { unique: false });
           storyStore.createIndex("name", "name", { unique: false });
-          console.log('Created stories store');
         }
 
-        // Store for draft stories (offline)
+        // Create drafts store
         if (!db.objectStoreNames.contains(this.draftStore)) {
           const draftStore = db.createObjectStore(this.draftStore, {
             keyPath: "id",
@@ -52,10 +51,9 @@ class StoryDB {
           draftStore.createIndex("createdAt", "createdAt", { unique: false });
           draftStore.createIndex("name", "name", { unique: false });
           draftStore.createIndex("status", "status", { unique: false });
-          console.log('Created drafts store');
         }
 
-        // Store for favorite stories
+        // Create favorites store
         if (!db.objectStoreNames.contains(this.favoriteStore)) {
           const favoriteStore = db.createObjectStore(this.favoriteStore, {
             keyPath: "id",
@@ -63,13 +61,12 @@ class StoryDB {
           });
           favoriteStore.createIndex("storyId", "storyId", { unique: true });
           favoriteStore.createIndex("savedAt", "savedAt", { unique: false });
-          console.log('Created favorites store');
         }
       };
     });
   }
 
-  // === STORY OPERATIONS ===
+  // ==================== STORY OPERATIONS ====================
 
   async saveStory(storyData, isDraft = false) {
     try {
@@ -80,24 +77,18 @@ class StoryDB {
 
       const data = {
         ...storyData,
-        id: isDraft ? undefined : storyData.id, // Let autoIncrement work for drafts
+        id: isDraft ? undefined : storyData.id,
         savedAt: new Date().toISOString(),
         isDraft: isDraft
       };
 
       return new Promise((resolve, reject) => {
         const request = isDraft ? store.add(data) : store.put(data);
-        request.onsuccess = () => {
-          console.log(`Story ${isDraft ? 'draft' : 'published'} saved:`, request.result);
-          resolve(request.result);
-        };
-        request.onerror = () => {
-          console.error(`Error saving ${isDraft ? 'draft' : 'story'}:`, request.error);
-          reject(request.error);
-        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
       });
     } catch (error) {
-      console.error('Error in saveStory:', error);
+      console.error('Error saving story:', error);
       throw error;
     }
   }
@@ -115,7 +106,7 @@ class StoryDB {
         total: stories.length + drafts.length
       };
     } catch (error) {
-      console.error('Error getting all stories:', error);
+      console.error('Error getting stories:', error);
       return { stories: [], drafts: [], all: [], total: 0 };
     }
   }
@@ -127,10 +118,7 @@ class StoryDB {
     return new Promise((resolve, reject) => {
       const request = store.getAll();
       request.onsuccess = () => resolve(request.result || []);
-      request.onerror = () => {
-        console.error(`Error getting stories from ${storeName}:`, request.error);
-        reject(request.error);
-      };
+      request.onerror = () => reject(request.error);
     });
   }
 
@@ -147,7 +135,7 @@ class StoryDB {
         request.onerror = () => reject(request.error);
       });
     } catch (error) {
-      console.error('Error getting story by ID:', error);
+      console.error('Error getting story:', error);
       throw error;
     }
   }
@@ -172,17 +160,11 @@ class StoryDB {
 
       return new Promise((resolve, reject) => {
         const request = store.put(updatedStory);
-        request.onsuccess = () => {
-          console.log('Story updated:', request.result);
-          resolve(updatedStory);
-        };
-        request.onerror = () => {
-          console.error('Error updating story:', request.error);
-          reject(request.error);
-        };
+        request.onsuccess = () => resolve(updatedStory);
+        request.onerror = () => reject(request.error);
       });
     } catch (error) {
-      console.error('Error in updateStory:', error);
+      console.error('Error updating story:', error);
       throw error;
     }
   }
@@ -196,22 +178,16 @@ class StoryDB {
 
       return new Promise((resolve, reject) => {
         const request = store.delete(id);
-        request.onsuccess = () => {
-          console.log(`Story deleted from ${storeName}:`, id);
-          resolve(true);
-        };
-        request.onerror = () => {
-          console.error('Error deleting story:', request.error);
-          reject(request.error);
-        };
+        request.onsuccess = () => resolve(true);
+        request.onerror = () => reject(request.error);
       });
     } catch (error) {
-      console.error('Error in deleteStory:', error);
+      console.error('Error deleting story:', error);
       throw error;
     }
   }
 
-  // === FAVORITE OPERATIONS ===
+  // ==================== FAVORITE OPERATIONS ====================
 
   async addToFavorites(storyData) {
     try {
@@ -231,17 +207,11 @@ class StoryDB {
 
       return new Promise((resolve, reject) => {
         const request = store.add(favoriteData);
-        request.onsuccess = () => {
-          console.log('Added to favorites:', request.result);
-          resolve(request.result);
-        };
-        request.onerror = () => {
-          console.error('Error adding to favorites:', request.error);
-          reject(request.error);
-        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
       });
     } catch (error) {
-      console.error('Error in addToFavorites:', error);
+      console.error('Error adding to favorites:', error);
       throw error;
     }
   }
@@ -259,10 +229,7 @@ class StoryDB {
           const favorite = request.result;
           if (favorite) {
             const deleteRequest = store.delete(favorite.id);
-            deleteRequest.onsuccess = () => {
-              console.log('Removed from favorites:', storyId);
-              resolve(true);
-            };
+            deleteRequest.onsuccess = () => resolve(true);
             deleteRequest.onerror = () => reject(deleteRequest.error);
           } else {
             resolve(false);
@@ -311,12 +278,12 @@ class StoryDB {
         request.onerror = () => reject(request.error);
       });
     } catch (error) {
-      console.error('Error checking if favorite:', error);
+      console.error('Error checking favorite:', error);
       return false;
     }
   }
 
-  // === UTILITY METHODS ===
+  // ==================== UTILITY METHODS ====================
 
   async getStats() {
     try {
@@ -347,12 +314,10 @@ class StoryDB {
       const allStories = await this.getAllStories();
       const searchLower = searchTerm.toLowerCase();
       
-      const filteredStories = allStories.all.filter(story => 
+      return allStories.all.filter(story => 
         story.name?.toLowerCase().includes(searchLower) ||
         story.description?.toLowerCase().includes(searchLower)
       );
-
-      return filteredStories;
     } catch (error) {
       console.error('Error searching stories:', error);
       return [];
@@ -363,7 +328,6 @@ class StoryDB {
     try {
       const db = await this.openDB();
       const stores = [this.storyStore, this.draftStore, this.favoriteStore];
-      
       const transaction = db.transaction(stores, "readwrite");
       
       const clearPromises = stores.map(storeName => {
@@ -375,19 +339,19 @@ class StoryDB {
       });
 
       await Promise.all(clearPromises);
-      console.log('All data cleared successfully');
       return true;
     } catch (error) {
-      console.error('Error clearing all data:', error);
+      console.error('Error clearing data:', error);
       throw error;
     }
   }
+
+  // ==================== DATABASE MANAGEMENT ====================
 
   closeDB() {
     if (this.db) {
       this.db.close();
       this.db = null;
-      console.log('Database connection closed');
     }
   }
 
@@ -395,6 +359,8 @@ class StoryDB {
     return 'indexedDB' in window;
   }
 }
+
+// ==================== EXPORT ====================
 
 // Create singleton instance
 const storyDB = new StoryDB();

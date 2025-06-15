@@ -1,6 +1,7 @@
 import { StoryModel, AuthService } from "../../data/api.js";
 import { HomePresenter } from "../../presenters/home-presenters.js";
 
+// ==================== VIEW CLASS ==================== //
 export class HomeView {
   constructor() {
     this.presenter = null;
@@ -8,6 +9,7 @@ export class HomeView {
     this.addMapInstance = null;
   }
 
+  // ==================== RENDER HTML ==================== //
   render() {
     return `
       <div class="header">
@@ -31,6 +33,7 @@ export class HomeView {
     `;
   }
 
+  // ==================== AFTER RENDER ==================== //
   async afterRender() {
     const model = new StoryModel();
     this.presenter = new HomePresenter(model, this);
@@ -39,6 +42,7 @@ export class HomeView {
     await this.presenter.initialize();
   }
 
+  // ==================== EVENT LISTENERS ==================== //
   setupEventListeners() {
     document.getElementById("stories-btn").addEventListener("click", () => {
       this.presenter.handleShowStories();
@@ -53,6 +57,7 @@ export class HomeView {
     });
   }
 
+  // ==================== RENDER STORIES ==================== //
   renderStories(stories) {
     const content = document.getElementById("content");
     content.innerHTML = `
@@ -73,6 +78,7 @@ export class HomeView {
     this.initMap(stories);
   }
 
+  // ==================== RENDER ADD STORY FORM ==================== //
   renderAddStoryForm() {
     const content = document.getElementById("content");
     content.innerHTML = `
@@ -120,6 +126,7 @@ export class HomeView {
     this.initAddForm();
   }
 
+  // ==================== FORM EVENTS ==================== //
   setupFormEventListeners() {
     document.getElementById("story-form").addEventListener("submit", (e) => {
       e.preventDefault();
@@ -135,6 +142,7 @@ export class HomeView {
     });
   }
 
+  // ==================== MAP INITIALIZATION ==================== //
   initMap(stories) {
     if (this.mapInstance) {
       this.mapInstance.remove();
@@ -160,6 +168,7 @@ export class HomeView {
     });
   }
 
+  // ==================== ADD STORY MAP ==================== //
   initAddForm() {
     if (this.addMapInstance) {
       this.addMapInstance.remove();
@@ -187,6 +196,7 @@ export class HomeView {
     });
   }
 
+  // ==================== CAMERA ==================== //
   async startCamera() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -245,6 +255,7 @@ export class HomeView {
     document.getElementById("camera-container").style.display = "none";
   }
 
+  // ==================== UI FEEDBACK ==================== //
   showLoading(message = "Loading...") {
     const content = document.getElementById("content");
     content.innerHTML = `<div class="loading">${message}</div>`;
